@@ -94,17 +94,19 @@
   import { ElButton, ElDrawer } from 'element-plus'
   import { SwitchButton,CopyDocument,DArrowRight } from '@element-plus/icons-vue'
   import { msgErr } from '@/utils/message.js'
-  import { connectWallet as wallet,isConnected,chainList,provider,getChainInfo,changeNetwork,disConnectWallet,address } from '../services/wallet.js';
+  import { connectWallet as wallet,isConnected,chainList,provider,getChainId,getBalance,getChainInfo,changeNetwork,disConnectWallet,address } from '../services/wallet.js';
   import metamask from '@/assets/public/images/metamask-icon.svg';
   import Okx from '@/assets/public/images/okx.png';
   import Walletconnect from '@/assets/public/images/walletconnect-icon.svg';
   import Coinbase from '@/assets/public/images/coinbase-icon.svg';
+  import Keplr from '@/assets/public/images/keplr-logo.svg';
 import { ethers } from 'ethers';
   const wallets = ref([
       { name: 'MetaMask', icon: metamask },
       { name: 'OKX', icon: Okx},
       { name: 'WalletConnect', icon: Walletconnect },
       { name: 'Coinbase', icon: Coinbase },
+      { name: 'Keplr', icon: Keplr },
       // 其他钱包
     ]);
   const visible = ref(false)
@@ -174,17 +176,22 @@ import { ethers } from 'ethers';
 const connectWallet = async (walletType) => {
 
    await wallet(walletType);
+   const id = await getChainId();
+   console.info("chainId = ",id);
+  //  return;
    userInfo.value.address = address;
    userInfo.value.isConnected = true;
    userInfo.value.walletType = walletType;
-   const chainId = provider._network.chainId;
+   const chainId = await getChainId();
    const chainInfo = await getChainInfo(chainId);
    console.log("chainInfo ",chainInfo);
+   console.log("chainInfo.name ",chainInfo.name);
    chainName.value = chainInfo.name;
    activeIndexChain.value = '1-'+Number(chainId);
-   const getBalance = await provider.getBalance(address.value)
+   console.log("address.value",address.value);
+   const chainBalance = await getBalance(address.value)
    
-   balance.value =  ethers.formatEther(getBalance);
+   balance.value =  chainBalance;
   //  console.log("userInfo",userInfo.value);
   };
   const formattedString = () =>{

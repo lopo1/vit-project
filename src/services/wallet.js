@@ -2,6 +2,13 @@ import { EthereumProvider } from '@walletconnect/ethereum-provider'
 import { ref } from 'vue';
 import { ethers } from 'ethers';
 import CoinbaseWalletSDK from '@coinbase/wallet-sdk'
+import { SigningCosmosClient ,coins,
+  coin,
+  MsgDelegate} from "@cosmjs/launchpad";
+import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice,calculateFee } from "@cosmjs/stargate";
+ 
 import {expErr} from '@/utils/message'
 
 // 创建一个 ref 来存储连接状态
@@ -15,6 +22,10 @@ let address = ref('');
 const projectId = '85cd042efdd7139347fe2f4b6da3c8bc'
 let ethereumProvider = undefined;
 let coinbaseWallet = undefined;
+let CosmWasmClient = undefined;
+let blockId =  ref('');
+let blockchain = ref('EVM');
+
 
 // 提供 Provider 对象
 // provide('ethersProvider', provider);
@@ -28,7 +39,7 @@ async function connectWallet(walletType) {
       const accounts = await provider.send('eth_requestAccounts', []);
       // 检查是否支持网络
       let chainId = provider._network.chainId;
-      
+      blockId.value=chainId;
       const invalibal = await checkChain(Number(chainId));
       if(!invalibal){
         console.log("chainId is invalid");
@@ -79,6 +90,7 @@ async function connectWallet(walletType) {
             console.log("Disconnect",event);
              address.value ="";
              isConnected.value=false;
+             blockId.value="";
              
             //  walletInfo.value.chainId = chainId;
               alert("连接断开")
@@ -120,6 +132,101 @@ async function connectWallet(walletType) {
   }catch(error){
       console.error(error);
   }  
+  }else if(walletType === 'Keplr'){
+    console.log("Nibi");
+    if (!window.keplr) {
+      alert("Please install keplr extension");
+  }
+  //   // Enabling before using the Keplr is recommended.
+  //   // This method will ask the user whether or not to allow access if they haven't visited this website.
+  //   // Also, it will request user to unlock the wallet if the wallet is locked.
+    let chainId = "nibiru-testnet-1";
+    blockId.value=chainId;
+    await window.keplr.enable(chainId);
+
+    window.addEventListener("keplr_keystorechange", () => {
+      console.log("Key store in Keplr is changed. You may need to refetch the account info.")
+  })
+
+    const offlineSigner = window.getOfflineSigner(chainId);
+    
+    const rpc = "https://rpc.testnet-1.nibiru.fi";
+    const exampleAddress = "nibi17dz4cdw5fmm2cxd4ht9xvjmpw3ycmpkpcc6js9"
+    // You can get the address/public keys by `getAccounts` method.
+    // It can return the array of address/public key.
+    // But, currently, Keplr extension manages only one address/public key pair.
+    // XXX: This line is needed to set the sender address for SigningCosmosClient.
+    const accounts = await offlineSigner.getAccounts();
+    address.value = accounts[0].address;
+    isConnected.value=true;
+    blockchain.value="cosmos";
+    console.log(accounts);
+    CosmWasmClient = await SigningCosmWasmClient.connectWithSigner(rpc, offlineSigner);
+    // CosmWasmClient.signAndBroadcast();
+    return;
+    
+
+    let user,  queryHandler, gasPrice;
+     // User wallet
+  // RPC access
+  // CosmWasmClient = await SigningCosmWasmClient.connectWithSigner(rpc, offlineSigner);
+  // Reference to querying a contract using the 'smart' query module
+  queryHandler = CosmWasmClient.queryClient.wasm.queryContractSmart;
+  // Gas price
+  gasPrice = GasPrice.fromString('0.002unibi');
+ 
+  console.log('dApp Initialized', {
+    user: user,
+    client: CosmWasmClient,
+    queryHandler: queryHandler,
+    gasPrice: gasPrice
+  });
+  let from = accounts[0].address;
+  let balance = await CosmWasmClient.getBalance(from, "unibi");
+    console.log('Account balance', {
+      user: from,
+      balance: balance
+    });
+
+
+    
+    //sendTokens(senderAddress: string, recipientAddress: string, amount: readonly Coin[], fee: StdFee | "auto" | number, memo?: string)
+    const fee = calculateFee(100_000, "0.025unibi");
+    const tx = await CosmWasmClient.sendTokens(from,exampleAddress,coins(123, "unibi"),fee);
+    console.log("tx = ",tx);
+
+    // // Initialize the gaia api with the offline signer that is injected by Keplr extension.
+    // const client  = new SigningCosmosClient(
+    //   //https://lcd-cosmoshub.keplr.app
+    //     // "https://lcd-cosmoshub.keplr.app",
+    //     "https://lcd.testnet-1.nibiru.fi",
+    //     // "https://rpc.testnet-1.nibiru.fi:443",
+    //     accounts[0].address,
+    //     offlineSigner,
+    // );
+    // console.log("client = ",client.getHeight());
+    // const recipient = "nibi1n7shg58rq42x0x50qwh5ygpmdgmr359fq9sj4f";
+    
+    // const tx = await client.sendTokens(recipient, coins(123, "unibi"));
+    // console.log("tx = ",tx);
+    // const fee = {
+    //   amount: coins(2000, "unibi"),
+    //   gas: "180000", // 180k
+    // };
+    
+    // let signed = await client.sign([msg], fee);
+    // console.log("Signed transaction:", signed);
+    // We can broadcast it manually later on
+    // const result = await client.broadcastTx(signed);
+    // console.log("Broadcasting result:", result);
+
+    // const account = await client.getAccount();
+    // console.log("Account:", account);
+    // const recipient = "nibi1n7shg58rq42x0x50qwh5ygpmdgmr359fq9sj4f";
+    // await client.sendTokens(recipient, coins(123, "unibi"));
+    
+
+
   }
   
 }
@@ -143,6 +250,7 @@ async function disConnectWallet(walletType) {
   }
   isConnected.value = false;
   address.value = '';
+  blockId.value = '';
   
 }
 // 调用合约方法的示例
@@ -214,6 +322,7 @@ let chainList= ref([
   {"id":4,"name":"Manta","chainId":169,"icon":"","rpc":"https://pacific-rpc.manta.network/http","export":"https://testnet.blastscan.io/"},
   {"id":5,"name":"Manta Testnet","chainId":3441005,"icon":"","rpc":"https://manta-testnet.calderachain.xyz/http","export":"https://pacific-explorer.manta.network/"},
   {"id":6,"name":"Blast Testnet","chainId":168587773,"icon":"","rpc":"https://sepolia.blast.io/","export":"https://testnet.blastscan.io/"},
+  {"id":7,"name":"Nibi Testnet","chainId":"nibiru-testnet-1","icon":"","rpc":"https://rpc.testnet-1.nibiru.fi","export":"https://rpc.testnet-1.nibiru.fi"},
 ]);
 let chainIds = chainList.value.map(item => item.chainId);
 
@@ -298,7 +407,7 @@ async function getChain(chainId){
 }
 
 async function getChainInfo(chainId){
-  chainId = Number(chainId);
+  chainId = convertOrKeep(chainId);
   for (let i = 0; i < chainList.value.length ; i++) {
     if (chainList.value[i].chainId == chainId){
       return chainList.value[i];
@@ -307,4 +416,68 @@ async function getChainInfo(chainId){
   return null;
 }
 
-export { isConnected,callContract, connectWallet,provider,changeNetwork,getChain,address,getChainInfo,chainList,disConnectWallet, callContractMethod };
+async function getChainId(){
+  return blockId.value;
+}
+// bigInt转换
+function convertOrKeep(value) {
+  // 检查value是否为BigInt
+  if (typeof value === 'bigint') {
+    // 如果是BigInt，则尝试转换为Number
+    return Number(value);
+  }
+  // 如果不是BigInt（例如字符串），则保持不变
+  return value;
+}
+
+// 定义一个异步函数来获取Cosmos SDK区块链上的余额
+async function getCosmosBalance(fromAddress, denom) {
+  // let balance = await CosmWasmClient.getBalance(from, "unibi");
+  let balance = await CosmWasmClient.getBalance(fromAddress, denom);
+  balance = balance.amount/1000000;
+  return balance;
+}
+
+// 定义一个异步函数来获取Ethereum区块链上的ETH余额
+async function getEthereumBalance(fromAddress) {
+  const balance = await provider.getBalance(fromAddress);
+  return ethers.formatEther(balance);
+}
+
+// 定义一个统一的接口函数，根据不同的区块链类型来获取余额
+async function getBalance(addr) {
+  if (addr==""||addr == undefined){
+    addr = address.value;
+  }
+  
+  if (blockchain.value === "Cosmos" || blockchain.value === "cosmos" ) {
+    return getCosmosBalance(addr, "unibi");
+  } else if (blockchain.value === "EVM") {
+    return getEthereumBalance(addr);
+  } else {
+    throw new Error("Unsupported blockchain type");
+  }
+}
+
+async function cosmosSendToken(from,to,amount,denom){
+  //sendTokens(senderAddress: string, recipientAddress: string, amount: readonly Coin[], fee: StdFee | "auto" | number, memo?: string)
+  // const fee = calculateFee(100_000, "0.025unibi");
+  // gasPrice = GasPrice.fromString('0.002unibi');
+  const gas = "0.025"+denom;
+  const fee = calculateFee(100_000, gas);
+  console.log("fee: " + fee);
+  amount = amount*1000000;
+  // const tx = await CosmWasmClient.sendTokens(from,exampleAddress,coins(123, "unibi"),fee);
+  const tx = await CosmWasmClient.sendTokens(from,to,coins(amount, denom),fee);
+  console.log("tx = ",tx);
+  return tx;
+}
+
+async function markets(){
+  
+ 
+  const tx = await CosmWasmClient.getBlock(1);
+  console.log("tx = ",tx);
+  return tx;
+}
+export { markets,isConnected,callContract, connectWallet,provider,CosmWasmClient,getChainId,getBalance,changeNetwork,getChain,cosmosSendToken,address,getChainInfo,chainList,disConnectWallet, callContractMethod };

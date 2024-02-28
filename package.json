@@ -10,12 +10,17 @@
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^3.7.2",
+    "@cosmjs/cosmwasm-stargate": "^0.32.2",
+    "@cosmjs/proto-signing": "^0.32.2",
+    "@cosmjs/stargate": "^0.32.2",
     "@walletconnect/ethereum-provider": "^2.11.0",
     "element-plus": "^2.5.1",
     "vue": "^3.3.11",
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@cosmjs/launchpad": "^0.27.1",
+    "@nibiruchain/nibijs": "^3.0.13",
     "@vitejs/plugin-vue": "^4.5.2",
     "ethers": "^6.10.0",
     "unplugin-vue-components": "^0.26.0",

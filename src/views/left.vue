@@ -63,7 +63,20 @@ const handleClose = (key, keyPath) => {
               <el-icon><setting /></el-icon>
               <span>合约调用</span>
             </router-link>
-            
+          </el-menu-item>
+
+          <el-menu-item index="4" >
+            <router-link to="/cw20Transfer" class="custom-router-link">
+              <el-icon><setting /></el-icon>
+              <span>CW20-transfer</span>
+            </router-link>
+          </el-menu-item>
+
+          <el-menu-item index="5" >
+            <router-link to="/markets" class="custom-router-link">
+              <el-icon><setting /></el-icon>
+              <span>markets</span>
+            </router-link>
           </el-menu-item>
 
           <!-- <el-menu-item index="3" >

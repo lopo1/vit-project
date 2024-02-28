@@ -4,6 +4,8 @@ import Home from "../views/home.vue"
 import Test from "@/views/menu/test.vue"
 import Call from "@/views/menu/call.vue"
 import ERC20Transfer from "@/views/common/ERC20Transfer.vue"
+import Cw20Transfer from "@/views/common/Cw20Transfer.vue"
+import Markets from "@/views/common/markets.vue"
 import ERC20Stake from "@/views/common/ERC20Stake.vue"
 import ERC20Swap from "@/views/common/Erc20Swap.vue"
 import ERC721Transfer from "@/views/common/ERC721Transfer.vue"
@@ -33,6 +35,12 @@ const routes = [
       },
       {path: 'callContract', 
        component: Call ,
+      },
+      {path: 'cw20Transfer', 
+       component: Cw20Transfer ,
+      },
+      {path: 'markets', 
+       component: Markets ,
       }
     ]
   },
